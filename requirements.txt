@@ -9,4 +9,6 @@ fpdf==1.7.2
 pyttsx3
 SpeechRecognition
 psycopg2-binary
-PyAudio==0.2.11
+sounddevice==0.4.6
+#PyAudio==0.2.11
+
