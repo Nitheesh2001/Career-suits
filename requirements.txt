@@ -3,6 +3,7 @@ PyPDF2
 google.generativeai
 python-dotenv
 langchain
+langchain_community==<version>
 faiss-cpu
 langchain_google_genai
 fpdf==1.7.2
