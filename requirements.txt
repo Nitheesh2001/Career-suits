@@ -18,7 +18,7 @@ PyPDF2==3.0.1
 google-generativeai==0.7.2
 python-dotenv==1.0.1
 langchain==0.2.12
-faiss-cpu==1.7.4
+faiss-cpu
 fpdf==1.7.2
 pyttsx3==2.90
 SpeechRecognition==3.9.0
