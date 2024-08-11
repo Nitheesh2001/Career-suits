@@ -88,13 +88,11 @@ def login_page():
             st.session_state["logged_in"] = True
             st.session_state["username"] = username
             st.session_state["page"] = "home"
-            # st.experimental_rerun()
             st.rerun()
         else:
             st.error("Invalid credentials. Please try again.")
     if st.button("Sign Up"):
         st.session_state["page"] = "signup"
-        # st.experimental_rerun()
         st.rerun()
 
 # Function to handle signup page
@@ -109,7 +107,6 @@ def signup_page():
             if register_user(username, password, users):
                 st.success("Signup successful! You can now log in.")
                 st.session_state["page"] = "login"
-                # st.experimental_rerun()
                 st.rerun()
             else:
                 st.error("Username already exists.")
@@ -117,23 +114,19 @@ def signup_page():
             st.error("Passwords do not match.")
     if st.button("Back to Login"):
         st.session_state["page"] = "login"
-        # st.experimental_rerun()
         st.rerun()
 
 # Function to handle home page and mock interview
 def home_page():
-    # Streamlit app
     st.set_page_config(page_title="Mock Interview with AI Feedback", layout="wide")
     st.title("Mock Interview with AI Feedback")
 
-    # Collect user input
     st.header("Tell us about yourself")
     job_type = st.text_area("Job or Industry", placeholder="e.g., software engineering, marketing, finance, healthcare, etc.")
     experience_level = st.text_area("Current Level of Experience", placeholder="e.g., entry-level, mid-level, senior-level, executive-level")
     interview_format = st.text_area("Preferred Interview Format", placeholder="e.g., behavioral, technical, case study, panel interview")
     focus_areas = st.text_area("Specific Focus Areas", placeholder="e.g., common interview questions, salary negotiation, body language")
 
-    # Initialize session state
     if 'questions' not in st.session_state:
         st.session_state.questions = generate_initial_questions(job_type, experience_level, interview_format, focus_areas)
         st.session_state.current_question = 0
@@ -144,7 +137,6 @@ def home_page():
         st.session_state.total_feedback = []
         st.session_state.interview_started = False
 
-    # Button to start the mock interview
     if st.button("Start Mock Interview"):
         if job_type and experience_level and interview_format and focus_areas:
             st.session_state.questions = generate_initial_questions(job_type, experience_level, interview_format, focus_areas)
@@ -156,7 +148,6 @@ def home_page():
             st.session_state.total_feedback = []
             st.session_state.interview_started = True
 
-    # Function to handle recording and feedback loop
     def handle_question():
         if st.session_state.current_question < len(st.session_state.questions):
             question = st.session_state.questions[st.session_state.current_question]
@@ -170,11 +161,15 @@ def home_page():
                 response_thread.join()
                 if not q.empty():
                     st.session_state.current_response = q.get()
-                st.session_state.recording = False  # Stop recording after getting response
+                st.session_state.recording = False
             elif st.session_state.typing:
-                st.session_state.current_response = st.text_area("Type your answer", key=f"typed_answer_{st.session_state.current_question}")
-                if st.button("Submit Answer", key=f"submit_answer_{st.session_state.current_question}"):
-                    st.session_state.typing = False
+                col1, col2 = st.columns([1, 3])  # Fixed column widths
+                with col1:
+                    st.write(" ")
+                with col2:
+                    st.session_state.current_response = st.text_area("Type your answer", key=f"typed_answer_{st.session_state.current_question}", height=200)
+                    if st.button("Submit Answer", key=f"submit_answer_{st.session_state.current_question}"):
+                        st.session_state.typing = False
 
             else:
                 col1, col2 = st.columns(2)
@@ -190,7 +185,6 @@ def home_page():
                 feedback = get_feedback(st.session_state.current_response, st.session_state.questions[st.session_state.current_question])
                 st.write(f"Feedback: {feedback}")
 
-                # Calculate feedback score
                 score = min(max(len(st.session_state.current_response.split()) // 5, 1), 10)
                 st.session_state.total_feedback.append(score)
 
@@ -198,20 +192,17 @@ def home_page():
                 st.session_state.questions.append(followup_question)
                 st.session_state.current_question += 1
                 st.session_state.current_response = ""
-                handle_question()  # Recursive call to handle the next question
+                handle_question()
 
-    # Loop through questions and feedback until "Finish" is clicked
     if 'interview_started' in st.session_state and st.session_state.interview_started:
         handle_question()
 
-    # Finish button to end the mock interview
     finish_button_placeholder = st.empty()
     if finish_button_placeholder.button("Finish"):
         st.write("Mock Interview Finished")
         st.session_state.current_question = len(st.session_state.questions)
         st.session_state.interview_started = False
 
-        # Calculate total feedback score
         if st.session_state.total_feedback:
             total_score = sum(st.session_state.total_feedback) // len(st.session_state.total_feedback)
         else:
@@ -227,9 +218,8 @@ def home_page():
             st.write(f"Overall Feedback Score: {total_score}/10")
             st.write("Needs improvement. Focus on the feedback provided.")
             
-        # Center the "Finish" button
         finish_button_placeholder.empty()
-        st.write("---")  # Separator line
+        st.write("---")
         st.write("Thank you for participating in the mock interview!")
 
 # Main function to handle page routing
