@@ -13,13 +13,16 @@
 
 streamlit==1.37.1
 PyPDF2==3.0.1
+langchain_community
 google-generativeai==0.7.2
 python-dotenv==1.0.1
 langchain==0.2.12
-faiss-cpu==1.7.4
-langchain-google-genai==0.0.1
+langchain-google-genai
+faiss-cpu
 fpdf==1.7.2
 pyttsx3==2.90
 SpeechRecognition==3.9.0
-psycopg2-binary==2.9.5
+#psycopg2-binary==2.9.5
 sounddevice==0.4.6
+sounddevice==0.4.6
+scipy==1.11.2
