@@ -1,7 +1,5 @@
 import streamlit as st
 import pyttsx3
-import sounddevice as sd
-import numpy as np
 import speech_recognition as sr
 import os
 from dotenv import load_dotenv
@@ -10,7 +8,6 @@ import threading
 import queue
 import json
 from utils.auth import authenticate_user, register_user
-from scipy.io.wavfile import write
 
 # Load environment variables
 load_dotenv()
@@ -56,21 +53,10 @@ def generate_followup_question(previous_answer):
 
 # Function to capture audio response and convert to text
 def get_audio_response(q):
-    sample_rate = 44100  # Sample rate in Hz
-    duration = 5  # Duration of the recording in seconds
-    st.write("Listening for your response...")
-
-    # Record the audio using sounddevice
-    audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='int16')
-    sd.wait()  # Wait until the recording is finished
-
-    # Save the recorded audio to a WAV file
-    wav_file = "output.wav"
-    write(wav_file, sample_rate, audio_data)
-
-    # Use SpeechRecognition to process the WAV file
-    with sr.AudioFile(wav_file) as source:
-        audio = recognizer.record(source)
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)
+        st.write("Listening for your response...")
+        audio = recognizer.listen(source)
         try:
             response = recognizer.recognize_google(audio)
             q.put(response)
@@ -102,11 +88,13 @@ def login_page():
             st.session_state["logged_in"] = True
             st.session_state["username"] = username
             st.session_state["page"] = "home"
+            # st.experimental_rerun()
             st.rerun()
         else:
             st.error("Invalid credentials. Please try again.")
     if st.button("Sign Up"):
         st.session_state["page"] = "signup"
+        # st.experimental_rerun()
         st.rerun()
 
 # Function to handle signup page
@@ -121,6 +109,7 @@ def signup_page():
             if register_user(username, password, users):
                 st.success("Signup successful! You can now log in.")
                 st.session_state["page"] = "login"
+                # st.experimental_rerun()
                 st.rerun()
             else:
                 st.error("Username already exists.")
@@ -128,6 +117,7 @@ def signup_page():
             st.error("Passwords do not match.")
     if st.button("Back to Login"):
         st.session_state["page"] = "login"
+        # st.experimental_rerun()
         st.rerun()
 
 # Function to handle home page and mock interview
@@ -233,20 +223,22 @@ def home_page():
                 display: block;
             }
             </style>
-        """, unsafe_allow_html=True)
-        st.session_state.interview_started = False
+            """, unsafe_allow_html=True)
 
-# Main app logic
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
+# Main logic to handle pages
 if "page" not in st.session_state:
-    st.session_state.page = "login"
+    st.session_state["page"] = "login"
 
-if st.session_state.logged_in:
-    home_page()
-else:
-    if st.session_state.page == "login":
-        login_page()
-    elif st.session_state.page == "signup":
-        signup_page()
+if st.session_state["page"] == "login":
+    login_page()
+elif st.session_state["page"] == "signup":
+    signup_page()
+elif st.session_state["page"] == "home":
+    if "logged_in" in st.session_state and st.session_state["logged_in"]:
+        home_page()
+    else:
+        st.write("Please log in to access the mock interview.")
+        st.session_state["page"] = "login"
+        # st.experimental_rerun()
+        st.rerun()
+
