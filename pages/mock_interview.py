@@ -140,6 +140,7 @@ def home_page():
         st.session_state.responses = []
         st.session_state.current_response = ""
         st.session_state.recording = False
+        st.session_state.typing = False
         st.session_state.total_feedback = []
         st.session_state.interview_started = False
 
@@ -151,6 +152,7 @@ def home_page():
             st.session_state.responses = []
             st.session_state.current_response = ""
             st.session_state.recording = False
+            st.session_state.typing = False
             st.session_state.total_feedback = []
             st.session_state.interview_started = True
 
@@ -169,12 +171,22 @@ def home_page():
                 if not q.empty():
                     st.session_state.current_response = q.get()
                 st.session_state.recording = False  # Stop recording after getting response
+            elif st.session_state.typing:
+                st.session_state.current_response = st.text_area("Type your answer", key=f"typed_answer_{st.session_state.current_question}")
+                if st.button("Submit Answer", key=f"submit_answer_{st.session_state.current_question}"):
+                    st.session_state.typing = False
+
             else:
-                if st.button("Double click to Start Recording Your Answer", key=f"stop_recording_{st.session_state.current_question}"):
-                    st.session_state.recording = True
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Double click to Start Recording Your Answer", key=f"start_recording_{st.session_state.current_question}"):
+                        st.session_state.recording = True
+                with col2:
+                    if st.button("Double Click To Type Your Answer", key=f"start_typing_{st.session_state.current_question}"):
+                        st.session_state.typing = True
 
             if st.session_state.current_response:
-                st.write(f"Recorded Answer: {st.session_state.current_response}")
+                st.write(f"Answer: {st.session_state.current_response}")
                 feedback = get_feedback(st.session_state.current_response, st.session_state.questions[st.session_state.current_question])
                 st.write(f"Feedback: {feedback}")
 
@@ -216,29 +228,21 @@ def home_page():
             st.write("Needs improvement. Focus on the feedback provided.")
             
         # Center the "Finish" button
-        finish_button_placeholder.markdown("""
-            <style>
-            div.stButton > button:first-child {
-                margin: 0 auto;
-                display: block;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+        finish_button_placeholder.empty()
+        st.write("---")  # Separator line
+        st.write("Thank you for participating in the mock interview!")
 
-# Main logic to handle pages
-if "page" not in st.session_state:
-    st.session_state["page"] = "login"
-
-if st.session_state["page"] == "login":
-    login_page()
-elif st.session_state["page"] == "signup":
-    signup_page()
-elif st.session_state["page"] == "home":
-    if "logged_in" in st.session_state and st.session_state["logged_in"]:
+# Main function to handle page routing
+def main():
+    if 'page' not in st.session_state:
+        st.session_state.page = 'login'
+    
+    if st.session_state.page == 'login':
+        login_page()
+    elif st.session_state.page == 'signup':
+        signup_page()
+    elif st.session_state.page == 'home':
         home_page()
-    else:
-        st.write("Please log in to access the mock interview.")
-        st.session_state["page"] = "login"
-        # st.experimental_rerun()
-        st.rerun()
 
+if __name__ == "__main__":
+    main()
