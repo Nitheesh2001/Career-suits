@@ -16,7 +16,7 @@ with open('users.json', 'r') as f:
     users = json.load(f)
 
 def show_login_page(users):
-    st.title(" welcome to career suite!")
+    st.title(" Welcome To Career Suite!")
     st.title("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
