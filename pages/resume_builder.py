@@ -27,7 +27,7 @@ def get_resume_content(name, email, phone, education, experience, skills, projec
     
     Provide a detailed and formatted resume.
     """
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
 
