@@ -3,12 +3,7 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 import json
-
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
-
-from auth import authenticate_user, register_user  # Import authentication functions
+import hashlib
 
 # Load environment variables
 load_dotenv()
@@ -16,7 +11,41 @@ load_dotenv()
 # Configure Google Generative AI
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Prompt template for skill gap analysis
+# ------------------- Auth Setup -------------------
+USERS_FILE = "users.json"
+
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+if "page" not in st.session_state:
+    st.session_state["page"] = "login"
+
+# ------------------- Auth Helpers -------------------
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def authenticate_user(username, password):
+    users = load_users()
+    return users.get(username) == hash_password(password)
+
+def register_user(username, password):
+    users = load_users()
+    if username in users:
+        return False
+    users[username] = hash_password(password)
+    save_users(users)
+    return True
+
+# ------------------- Prompt Template -------------------
 prompt_template = """
 You are an AI specializing in skill gap analysis. You will receive a list of skills required for a specific job 
 and a list of skills the user currently possesses. Your task is to identify the skill gaps and suggest resources or 
@@ -58,13 +87,9 @@ def generate_skill_gap_analysis(required_skills, current_skills):
         st.error(f"Failed to generate skill gap analysis: {e}")
         return ""
 
-
 def display_analysis_result(analysis_result):
     try:
-        # Remove code fences (e.g., ```json or ```)
         cleaned_result = analysis_result.strip().strip("```json").strip("```").strip()
-
-        # Try to parse the cleaned result
         analysis_json = json.loads(cleaned_result)
         
         st.subheader("Required Skills")
@@ -83,20 +108,19 @@ def display_analysis_result(analysis_result):
                 st.markdown(f"- [{res['name']}]({res['link']})")
     except Exception as e:
         st.error(f"Error parsing analysis result: {e}")
-        st.code(analysis_result, language="json")  # Show raw result for debugging
+        st.code(analysis_result, language="json")
 
-
-# Function to show the login page
+# ------------------- UI Pages -------------------
 def show_login_page():
-
     st.title("Welcome to the Skill Gap Analyzer!")
     st.subheader("Log in to identify and address skill gaps in your expertise. Enhance your skills and stay ahead in your career journey!")
 
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.text_input("Username", key="login_username")
+    st.text_input("Password", type="password", key="login_password")
 
     if st.button("Login"):
+        username = st.session_state.login_username
+        password = st.session_state.login_password
         if authenticate_user(username, password):
             st.session_state["logged_in"] = True
             st.session_state["page"] = "home"
@@ -108,14 +132,17 @@ def show_login_page():
         st.session_state["page"] = "signup"
         st.rerun()
 
-# Function to show the signup page
 def show_signup_page():
     st.title("Signup")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
+    st.text_input("Username", key="signup_username")
+    st.text_input("Password", type="password", key="signup_password")
+    st.text_input("Confirm Password", type="password", key="signup_confirm")
 
     if st.button("Signup"):
+        username = st.session_state.signup_username
+        password = st.session_state.signup_password
+        confirm_password = st.session_state.signup_confirm
+
         if password == confirm_password:
             if register_user(username, password):
                 st.success("Signup successful! Please log in.")
@@ -130,7 +157,6 @@ def show_signup_page():
         st.session_state["page"] = "login"
         st.rerun()
 
-# Function to show the main content page
 def show_main_page():
     st.set_page_config(page_title="Skill Gap Analyzer", layout="wide")
     st.title("Skill Gap Analyzer")
@@ -145,7 +171,7 @@ def show_main_page():
         if required_skills and current_skills:
             required_skills_list = [skill.strip() for skill in required_skills.split(",")]
             current_skills_list = [skill.strip() for skill in current_skills.split(",")]
-            
+
             if not required_skills_list or not current_skills_list:
                 st.warning("Please enter both required skills and current skills.")
             else:
@@ -159,12 +185,8 @@ def show_main_page():
         else:
             st.warning("Please enter both required skills and current skills.")
 
+# ------------------- Main App -------------------
 def main():
-    if "logged_in" not in st.session_state:
-        st.session_state["logged_in"] = False
-    if "page" not in st.session_state:
-        st.session_state["page"] = "login"
-
     if st.session_state["logged_in"]:
         if st.session_state["page"] == "home":
             show_main_page()
