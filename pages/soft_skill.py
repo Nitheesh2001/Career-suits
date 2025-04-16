@@ -32,7 +32,7 @@ def get_feedback(answers):
     Based on the following self-assessment of soft skills, provide a detailed analysis and suggestions for improvement.
     {questions_and_answers}
     """
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
 
