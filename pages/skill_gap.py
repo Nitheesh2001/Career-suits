@@ -3,23 +3,18 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 import json
+
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
 
-# from auth import authenticate_user, register_user
-from utils.auth import authenticate_user, register_user
-
+from auth import authenticate_user, register_user  # Import authentication functions
 
 # Load environment variables
 load_dotenv()
 
 # Configure Google Generative AI
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
-# Read user credentials from JSON file
-with open('users.json', 'r') as f:
-    users = json.load(f)
 
 # Prompt template for skill gap analysis
 prompt_template = """
@@ -36,7 +31,6 @@ courses to help the user acquire the missing skills. Provide the analysis in the
       "resources": [
         {"name": "Resource 1", "link": "https://example.com/resource1"},
         {"name": "Resource 2", "link": "https://example.com/resource2"}
-        {"name": "Resource 3", "link": "https://example.com/resource3"}
       ]
     },
     ...
@@ -50,13 +44,28 @@ def generate_skill_gap_analysis(required_skills, current_skills):
         "Current Skills": current_skills
     }
     prompt = prompt_template + str(input_data)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
-    return response.text
+
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+
+        if not response.text or response.text.strip() == "":
+            raise ValueError("Empty response from Gemini API")
+
+        return response.text
+
+    except Exception as e:
+        st.error(f"Failed to generate skill gap analysis: {e}")
+        return ""
+
 
 def display_analysis_result(analysis_result):
     try:
-        analysis_json = json.loads(analysis_result)
+        # Remove code fences (e.g., ```json or ```)
+        cleaned_result = analysis_result.strip().strip("```json").strip("```").strip()
+
+        # Try to parse the cleaned result
+        analysis_json = json.loads(cleaned_result)
         
         st.subheader("Required Skills")
         st.write(", ".join(analysis_json["Required Skills"]))
@@ -74,8 +83,12 @@ def display_analysis_result(analysis_result):
                 st.markdown(f"- [{res['name']}]({res['link']})")
     except Exception as e:
         st.error(f"Error parsing analysis result: {e}")
+        st.code(analysis_result, language="json")  # Show raw result for debugging
 
-def show_login_page(users):
+
+# Function to show the login page
+def show_login_page():
+
     st.title("Welcome to the Skill Gap Analyzer!")
     st.subheader("Log in to identify and address skill gaps in your expertise. Enhance your skills and stay ahead in your career journey!")
 
@@ -84,20 +97,19 @@ def show_login_page(users):
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if authenticate_user(username, password, users):
+        if authenticate_user(username, password):
             st.session_state["logged_in"] = True
             st.session_state["page"] = "home"
-            # st.experimental_rerun()
             st.rerun()
         else:
             st.error("Invalid username or password")
 
     if st.button("Sign Up"):
         st.session_state["page"] = "signup"
-        # st.experimental_rerun()
         st.rerun()
 
-def show_signup_page(users):
+# Function to show the signup page
+def show_signup_page():
     st.title("Signup")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
@@ -105,10 +117,9 @@ def show_signup_page(users):
 
     if st.button("Signup"):
         if password == confirm_password:
-            if register_user(username, password, users):
+            if register_user(username, password):
                 st.success("Signup successful! Please log in.")
                 st.session_state["page"] = "login"
-                # st.experimental_rerun()
                 st.rerun()
             else:
                 st.error("Signup failed. Username might already exist.")
@@ -117,9 +128,9 @@ def show_signup_page(users):
 
     if st.button("Back to Login"):
         st.session_state["page"] = "login"
-        # st.experimental_rerun()
         st.rerun()
 
+# Function to show the main content page
 def show_main_page():
     st.set_page_config(page_title="Skill Gap Analyzer", layout="wide")
     st.title("Skill Gap Analyzer")
@@ -159,16 +170,14 @@ def main():
             show_main_page()
         else:
             st.session_state["page"] = "home"
-            # st.experimental_rerun()
             st.rerun()
     else:
         if st.session_state["page"] == "login":
-            show_login_page(users)
+            show_login_page()
         elif st.session_state["page"] == "signup":
-            show_signup_page(users)
+            show_signup_page()
         else:
             st.session_state["page"] = "login"
-            # st.experimental_rerun()
             st.rerun()
 
 if __name__ == "__main__":
