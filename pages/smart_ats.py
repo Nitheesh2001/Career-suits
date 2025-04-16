@@ -23,7 +23,7 @@ if "page" not in st.session_state:
 
 # Function to get Gemini response
 def get_gemini_response(input):
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(input)
     return response.text
 
