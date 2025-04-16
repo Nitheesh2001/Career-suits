@@ -50,7 +50,7 @@ def generate_skill_gap_analysis(required_skills, current_skills):
         "Current Skills": current_skills
     }
     prompt = prompt_template + str(input_data)
-    model = genai.GenerativeModel("gemini-pro")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(prompt)
     return response.text
 
