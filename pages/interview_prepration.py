@@ -4,27 +4,27 @@ import json
 import hashlib
 from dotenv import load_dotenv
 import google.generativeai as genai
+import PyPDF2
 
-# Load env vars
+# Load environment variables
 load_dotenv()
+
+# Configure Gemini API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Set page config
-st.set_page_config(
-    page_title="Interview Preparation AI",
-    page_icon="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJL_4deHMJLHCB-63srdgaBe2JZmiOSxlnEg&s"
-)
+# Set up Streamlit
+st.set_page_config(page_title="Interview Preparation AI", page_icon="🤖")
 
-# Users file
+# Paths
 USERS_FILE = 'users.json'
 
-# Session state
+# Session state setup
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "page" not in st.session_state:
     st.session_state["page"] = "login"
 
-# ------------- Auth Functions -------------
+# ------------------- Auth Helpers -------------------
 def load_users():
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, 'r') as f:
@@ -50,7 +50,7 @@ def register_user(username, password):
     save_users(users)
     return True
 
-# ------------- Gemini Generation Logic -------------
+# ------------------ Gemini Logic --------------------
 def generate_interview_preparation(job_role, resume_text, job_description, num_questions):
     prompt_template = """
 You are an AI assistant specializing in interview preparation. 
@@ -75,17 +75,22 @@ Here is the input data:
         "Job Description": job_description,
         "Number of Questions": num_questions
     }
-
     prompt = prompt_template + json.dumps(input_data)
 
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(prompt)
     return response.text
 
-# ------------- Page Functions -------------
+def extract_text_from_pdf(pdf_file):
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
 
+# ------------------ Pages ------------------------
 def show_login_page():
-    st.title("Welcome to the Interview Preparation Tool!")
+    st.title("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -108,56 +113,57 @@ def show_signup_page():
     confirm_password = st.text_input("Confirm Password", type="password")
 
     if st.button("Signup"):
-        if password == confirm_password:
-            if register_user(username, password):
-                st.success("Signup successful! Please log in.")
-                st.session_state["page"] = "login"
-                st.rerun()
-            else:
-                st.error("Username already exists.")
-        else:
+        if password != confirm_password:
             st.error("Passwords do not match.")
+        elif register_user(username, password):
+            st.success("Signup successful! Please log in.")
+            st.session_state["page"] = "login"
+            st.rerun()
+        else:
+            st.error("Username already exists.")
 
     if st.button("Back to Login"):
         st.session_state["page"] = "login"
         st.rerun()
 
 def show_main_page():
-    st.title("Interview Preparation Module")
-    st.subheader("Get ready for your next job interview")
+    st.title("🎯 Interview Preparation AI")
+    st.subheader("Generate job-specific questions & answers")
 
     job_role = st.text_input("Job Role")
-    resume_text = st.text_area("Paste Resume Text")
-    job_description = st.text_area("Paste Job Description")
+    uploaded_file = st.file_uploader("Upload Your Resume (PDF)", type="pdf")
+    job_description = st.text_area("Paste the Job Description")
     num_questions = st.number_input("Number of Questions", min_value=1, max_value=20, value=5)
 
-    if st.button("Generate Interview Q&A"):
-        if job_role and resume_text and job_description:
-            with st.spinner("Generating interview questions and answers..."):
+    if st.button("Generate"):
+        if job_role and uploaded_file and job_description:
+            with st.spinner("Generating content..."):
                 try:
-                    response_text = generate_interview_preparation(
-                        job_role, resume_text, job_description, num_questions
-                    )
-                    st.subheader("📄 Gemini Raw Output")
+                    resume_text = extract_text_from_pdf(uploaded_file)
+                    response_text = generate_interview_preparation(job_role, resume_text, job_description, num_questions)
+
+                    # Show raw for debug
+                    st.subheader("🔍 Raw Gemini Output")
                     st.code(response_text, language="json")
 
-                    parsed = json.loads(response_text)
-                    questions = parsed.get("Interview Questions", [])
-                    answers = parsed.get("Detailed Answers", {})
+                    # Parse JSON response
+                    data = json.loads(response_text)
+                    questions = data.get("Interview Questions", [])
+                    answers = data.get("Detailed Answers", {})
 
-                    st.subheader("✅ Interview Questions and Answers")
+                    st.subheader("📌 Questions and Answers")
                     for i, q in enumerate(questions, start=1):
                         st.markdown(f"**Q{i}: {q}**")
-                        st.markdown(f"**A{i}: {answers.get(q, 'No answer found')}**")
-                        st.write("---")
-                except json.JSONDecodeError:
-                    st.error("⚠️ Gemini response not in valid JSON format.")
-                except Exception as e:
-                    st.error(f"Error occurred: {e}")
-        else:
-            st.warning("Please fill all fields.")
+                        st.markdown(f"**A{i}:** {answers.get(q, 'No answer')}")
 
-# ------------- Page Routing -------------
+                except json.JSONDecodeError:
+                    st.error("⚠️ Gemini response not in valid JSON format. Please check the raw output.")
+                except Exception as e:
+                    st.error(f"Unexpected error: {e}")
+        else:
+            st.warning("Please fill in all fields and upload your resume.")
+
+# ------------------ Routing ------------------------
 if st.session_state["logged_in"]:
     if st.session_state["page"] == "home":
         show_main_page()
