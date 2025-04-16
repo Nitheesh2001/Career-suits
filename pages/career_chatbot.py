@@ -45,7 +45,7 @@ def generate_career_recommendation(education, goals):
         "Goals": goals
     }
     prompt = prompt_template.format(**input_data)
-    model = genai.GenerativeModel("gemini-pro")
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
 
