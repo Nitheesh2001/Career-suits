@@ -37,7 +37,7 @@ def get_feedback(answer, context):
 
     Provide feedback on the answer and suggest areas of improvement.
     """
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
 
@@ -47,7 +47,7 @@ def generate_followup_question(previous_answer):
     Based on the following answer, generate a follow-up question.
     Answer: {previous_answer}
     """
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     response = model.generate_content(prompt)
     return response.text
 
