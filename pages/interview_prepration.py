@@ -59,60 +59,56 @@ def register_user(username, password):
     return True
 
 # Function to generate interview preparation materials
+# Function to generate interview preparation materials
 def generate_interview_preparation(job_role, experience_level, job_description, num_questions):
     prompt_template = """
-    You are an AI assistant specializing in interview preparation. Provide a list of exactly {num_questions} common interview questions 
-    and detailed answers based on the given job role, experience level, job description, and number of questions. 
-    Provide the questions and answers in the following format:
-    Question 1:
-    [Question]
-    Answer 1:
-    [Answer]
-    Question 2:
-    [Question]
-    Answer 2:
-    [Answer]
-    ...
-    """
+You are an AI assistant specializing in interview preparation. Provide a list of exactly {num_questions} common interview questions 
+and detailed answers based on the given job role, experience level, and job description. 
+Provide the questions and answers in the following format:
+Question 1:
+[Question]
+Answer 1:
+[Answer]
+...
+"""
     input_data = f"""
-    Job Role: {job_role}
-    Experience Level: {experience_level}
-    Job Description: {job_description}
-    Number of Questions: {num_questions}
-    """
+Job Role: {job_role}
+Experience Level: {experience_level}
+Job Description: {job_description}
+Number of Questions: {num_questions}
+"""
     prompt = prompt_template.format(num_questions=num_questions) + input_data
-    response = genai.generate_text(model="models/text-bison-001", prompt=prompt)
-
-    st.write("API Response:", response.result)  # Log the raw API response
 
     try:
-        response_text = response.result.strip()
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+
         qa_pairs = []
         question = None
         answer = None
 
         lines = response_text.split('\n')
         for line in lines:
-            if line.startswith("Question"):
+            if line.lower().startswith("question"):
                 if question and answer:
                     qa_pairs.append((question, answer))
                 question = line.split(":", 1)[1].strip()
                 answer = None
-            elif line.startswith("Answer"):
+            elif line.lower().startswith("answer"):
                 answer = line.split(":", 1)[1].strip()
                 if question and answer:
                     qa_pairs.append((question, answer))
-                    question = None
-                    answer = None
+                    question, answer = None, None
 
-        # Append the last QA pair if it's valid
         if question and answer:
             qa_pairs.append((question, answer))
 
         return qa_pairs[:num_questions]
+
     except Exception as e:
-        st.error("An unexpected error occurred while processing the response.")
-        st.write("Error details:", str(e))  # Log the error details
+        st.error("An error occurred while generating content.")
+        st.write("Details:", str(e))
         return None
 
 # Function to show the login page
